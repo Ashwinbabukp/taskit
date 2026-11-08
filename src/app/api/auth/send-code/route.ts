@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { db, generateCode } from "@/lib/db";
+import { cookies } from "next/headers";
+import { db, generateCode, hashPassword } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 import { sendVerificationEmail } from "@/lib/mail";
+import { signData } from "@/lib/session";
 
 export async function POST(req: Request) {
   try {
@@ -14,7 +16,23 @@ export async function POST(req: Request) {
     const code = generateCode();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    // 1. Save to Supabase (primary in production)
+    // 1. Set cryptographically signed OTP challenge cookie (resilient on Vercel)
+    const challengeToken = signData({
+      email: cleanEmail,
+      hash: hashPassword(code),
+      exp: expiresAt,
+    });
+
+    const cookieStore = await cookies();
+    cookieStore.set("taskit_otp_challenge", challengeToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 10 * 60, // 10 minutes
+      path: "/",
+    });
+
+    // 2. Also try saving to Supabase if tables exist
     try {
       await supabase.from("users").upsert(
         {
@@ -28,7 +46,7 @@ export async function POST(req: Request) {
       console.log("[Supabase] send-code upsert:", sbErr);
     }
 
-    // 2. Save to SQLite (local development fallback)
+    // 3. Save to SQLite if available locally
     if (db) {
       try {
         const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(cleanEmail);
@@ -46,7 +64,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // 3. Dispatch real verification email
+    // 4. Dispatch real verification email
     const mailResult = await sendVerificationEmail({ to: cleanEmail, code });
 
     if (!mailResult.success && mailResult.error) {

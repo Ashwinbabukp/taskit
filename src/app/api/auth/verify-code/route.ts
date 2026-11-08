@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { db, generateSessionToken } from "@/lib/db";
+import { db, verifyPassword } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
+import { signData, verifySignedData } from "@/lib/session";
 
 export async function POST(req: Request) {
   try {
@@ -12,64 +13,82 @@ export async function POST(req: Request) {
 
     const cleanEmail = email.trim().toLowerCase();
     const cleanCode = code.trim();
+    const cookieStore = await cookies();
 
-    let userCode: string | null = null;
-    let codeExpiresAt: number = 0;
-    let userFound = false;
+    let verified = false;
 
-    // 1. Look up verification code in Supabase
-    try {
-      const { data, error } = await supabase
-        .from("users")
-        .select("verification_code, code_expires_at")
-        .eq("email", cleanEmail)
-        .single();
-
-      if (!error && data) {
-        userFound = true;
-        userCode = data.verification_code;
-        codeExpiresAt = Number(data.code_expires_at) || 0;
+    // 1. Check cryptographically signed OTP challenge cookie (instant, reliable on Vercel)
+    const challengeCookie = cookieStore.get("taskit_otp_challenge")?.value;
+    if (challengeCookie) {
+      const challenge = verifySignedData<{ email: string; hash: string; exp: number }>(challengeCookie);
+      if (challenge && challenge.email === cleanEmail) {
+        if (Date.now() > challenge.exp) {
+          return NextResponse.json(
+            { error: "Verification code expired. Please request a new one." },
+            { status: 400 }
+          );
+        }
+        if (verifyPassword(cleanCode, challenge.hash)) {
+          verified = true;
+        }
       }
-    } catch (sbErr) {
-      console.log("[Supabase] verify-code error:", sbErr);
     }
 
-    // 2. Fallback to SQLite if not found in Supabase
-    if (!userCode && db) {
+    // 2. Check Supabase users table as secondary verification
+    if (!verified) {
+      try {
+        const { data } = await supabase
+          .from("users")
+          .select("verification_code, code_expires_at")
+          .eq("email", cleanEmail)
+          .single();
+
+        if (data?.verification_code) {
+          if (Date.now() > Number(data.code_expires_at || 0)) {
+            return NextResponse.json(
+              { error: "Verification code expired. Please request a new one." },
+              { status: 400 }
+            );
+          }
+          if (data.verification_code === cleanCode) {
+            verified = true;
+          }
+        }
+      } catch (e) {}
+    }
+
+    // 3. Check SQLite as local fallback
+    if (!verified && db) {
       try {
         const user = db.prepare(
           "SELECT verification_code, code_expires_at FROM users WHERE email = ?"
         ).get(cleanEmail) as { verification_code: string; code_expires_at: number } | undefined;
 
-        if (user) {
-          userFound = true;
-          userCode = user.verification_code;
-          codeExpiresAt = user.code_expires_at;
+        if (user?.verification_code) {
+          if (Date.now() > user.code_expires_at) {
+            return NextResponse.json(
+              { error: "Verification code expired. Please request a new one." },
+              { status: 400 }
+            );
+          }
+          if (user.verification_code === cleanCode) {
+            verified = true;
+          }
         }
-      } catch (dbErr) {
-        console.log("[SQLite] verify-code error:", dbErr);
-      }
+      } catch (e) {}
     }
 
-    if (!userFound || !userCode) {
+    if (!verified) {
       return NextResponse.json(
-        { error: "No active verification code found. Please request a new one." },
-        { status: 404 }
-      );
-    }
-
-    if (userCode !== cleanCode) {
-      return NextResponse.json({ error: "Invalid verification code" }, { status: 400 });
-    }
-
-    if (Date.now() > codeExpiresAt) {
-      return NextResponse.json(
-        { error: "Verification code expired. Please request a new one." },
+        { error: "Invalid verification code. Please check your email or request a new code." },
         { status: 400 }
       );
     }
 
-    // Clear verification code
+    // Clear the challenge cookie
+    cookieStore.delete("taskit_otp_challenge");
+
+    // Clear code from Supabase & SQLite
     try {
       await supabase
         .from("users")
@@ -85,13 +104,16 @@ export async function POST(req: Request) {
       } catch (e) {}
     }
 
-    // Create session (valid for 30 days)
-    const token = generateSessionToken();
+    // Create session (valid for 30 days) with signed token
     const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
+    const sessionToken = signData({
+      email: cleanEmail,
+      exp: expiresAt,
+    });
 
     try {
       await supabase.from("sessions").insert({
-        token,
+        token: sessionToken,
         user_email: cleanEmail,
         expires_at: expiresAt,
       });
@@ -101,15 +123,14 @@ export async function POST(req: Request) {
     if (db) {
       try {
         db.prepare("INSERT INTO sessions (token, user_email, expires_at) VALUES (?, ?, ?)").run(
-          token,
+          sessionToken,
           cleanEmail,
           expiresAt
         );
       } catch (e) {}
     }
 
-    const cookieStore = await cookies();
-    cookieStore.set("taskit_session", token, {
+    cookieStore.set("taskit_session", sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

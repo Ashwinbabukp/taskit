@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { db, generateSessionToken } from "@/lib/db";
+import { db } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
+import { signData } from "@/lib/session";
 
 export async function POST(req: Request) {
   try {
@@ -21,8 +22,11 @@ export async function POST(req: Request) {
       } catch (e) {}
     }
 
-    const token = generateSessionToken();
     const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
+    const token = signData({
+      email,
+      exp: expiresAt,
+    });
 
     try {
       await supabase.from("sessions").insert({
