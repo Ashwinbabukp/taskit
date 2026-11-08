@@ -8,11 +8,21 @@ export interface Task {
   t: string;
   date: string;
   done: boolean;
+  startTime?: string; // "09:00" (24h format)
+  endTime?: string;   // "10:30" (24h format)
+  color?: string;     // "blue" | "green" | "purple" | "orange" | "red" | "amber"
+}
+
+export interface RoutineSettings {
+  wakeTime: string;  // e.g. "06:30"
+  sleepTime: string; // e.g. "23:00"
+  configured: boolean;
 }
 
 export interface AppData {
   tasks: Task[];
   journal: Record<string, string>;
+  routine?: RoutineSettings;
 }
 
 interface DataContextType {
@@ -22,22 +32,30 @@ interface DataContextType {
   patchTask: (task: Task, patch: Partial<Task>) => Promise<void>;
   delTask: (task: Task) => Promise<void>;
   putJournal: (date: string, value: string) => Promise<void>;
+  saveRoutine: (routine: RoutineSettings) => void;
   refresh: () => Promise<void>;
 }
 
+const defaultRoutine: RoutineSettings = {
+  wakeTime: "06:30",
+  sleepTime: "23:00",
+  configured: false,
+};
+
 const DataContext = createContext<DataContextType>({
-  db: { tasks: [], journal: {} },
+  db: { tasks: [], journal: {}, routine: defaultRoutine },
   loading: false,
   addTask: async () => {},
   patchTask: async () => {},
   delTask: async () => {},
   putJournal: async () => {},
+  saveRoutine: () => {},
   refresh: async () => {},
 });
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const { isLoggedIn, userEmail } = useAuth();
-  const [db, setDb] = useState<AppData>({ tasks: [], journal: {} });
+  const [db, setDb] = useState<AppData>({ tasks: [], journal: {}, routine: defaultRoutine });
   const [loading, setLoading] = useState(false);
 
   const getStorageKey = useCallback(() => {
@@ -46,7 +64,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const loadLocalData = useCallback((): AppData => {
     const key = getStorageKey();
-    if (!key || typeof window === "undefined") return { tasks: [], journal: {} };
+    if (!key || typeof window === "undefined") {
+      return { tasks: [], journal: {}, routine: defaultRoutine };
+    }
     try {
       const stored = localStorage.getItem(key);
       if (stored) {
@@ -54,10 +74,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return {
           tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
           journal: parsed.journal && typeof parsed.journal === "object" ? parsed.journal : {},
+          routine: parsed.routine || defaultRoutine,
         };
       }
     } catch (e) {}
-    return { tasks: [], journal: {} };
+    return { tasks: [], journal: {}, routine: defaultRoutine };
   }, [getStorageKey]);
 
   const saveLocalData = useCallback(
@@ -74,7 +95,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Fetch and sync data when user logs in or switches account
   const fetchData = useCallback(async () => {
     if (!isLoggedIn || !userEmail) {
-      setDb({ tasks: [], journal: {} });
+      setDb({ tasks: [], journal: {}, routine: defaultRoutine });
       return;
     }
 
@@ -92,42 +113,49 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const serverJournal: Record<string, string> =
           serverData.journal && typeof serverData.journal === "object" ? serverData.journal : {};
 
-        // Merge: local + server (server updates or local offline additions)
+        // Merge tasks
         const taskMap = new Map<string, Task>();
         for (const t of local.tasks) {
           taskMap.set(String(t.id), t);
         }
         for (const t of serverTasks) {
-          taskMap.set(String(t.id), t);
+          // If local has extra fields like startTime/color, preserve them
+          const existing = taskMap.get(String(t.id));
+          taskMap.set(String(t.id), {
+            ...t,
+            startTime: existing?.startTime || (t as any).startTime,
+            endTime: existing?.endTime || (t as any).endTime,
+            color: existing?.color || (t as any).color,
+          });
         }
 
         const mergedTasks = Array.from(taskMap.values()).sort((a, b) => (a.date < b.date ? 1 : -1));
         const mergedJournal = { ...local.journal, ...serverJournal };
 
+        // Restore routine from server journal if present
+        let routine = local.routine || defaultRoutine;
+        if (serverJournal["__routine_settings__"]) {
+          try {
+            routine = JSON.parse(serverJournal["__routine_settings__"]);
+          } catch (e) {}
+        }
+
         const updatedData: AppData = {
           tasks: mergedTasks,
           journal: mergedJournal,
+          routine,
         };
 
         setDb(updatedData);
         saveLocalData(updatedData);
 
-        // If local had tasks not yet in server (e.g. Supabase tables were down or just created), sync them up!
+        // Background sync: push local tasks not yet on server
         if (serverTasks.length === 0 && local.tasks.length > 0) {
           for (const t of local.tasks) {
             fetch("/api/tasks", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(t),
-            }).catch(() => {});
-          }
-        }
-        if (Object.keys(serverJournal).length === 0 && Object.keys(local.journal).length > 0) {
-          for (const [d, text] of Object.entries(local.journal)) {
-            fetch("/api/journal", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ date: d, text }),
             }).catch(() => {});
           }
         }
@@ -142,6 +170,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const saveRoutine = useCallback(
+    (routine: RoutineSettings) => {
+      setDb((prev) => {
+        const next: AppData = { ...prev, routine };
+        saveLocalData(next);
+        return next;
+      });
+
+      // Sync routine to server
+      fetch("/api/journal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: "__routine_settings__", text: JSON.stringify(routine) }),
+      }).catch(() => {});
+    },
+    [saveLocalData]
+  );
 
   const addTask = useCallback(
     async (task: Task) => {
@@ -248,6 +294,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         patchTask,
         delTask,
         putJournal,
+        saveRoutine,
         refresh: fetchData,
       }}
     >

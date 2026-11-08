@@ -13,6 +13,12 @@ const navItems = [
     path: "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z",
   },
   {
+    id: "journey",
+    label: "Daily Journey",
+    href: "/dashboard/journey",
+    path: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
+  },
+  {
     id: "tasks",
     label: "Tasks",
     href: "/dashboard/tasks",

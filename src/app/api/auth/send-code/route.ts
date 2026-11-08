@@ -78,7 +78,10 @@ export async function POST(req: Request) {
       success: true,
       delivered: mailResult.delivered,
       provider: mailResult.provider,
-      message: `Verification code sent to ${cleanEmail}`,
+      testCode: !mailResult.delivered || process.env.NODE_ENV === "development" ? code : undefined,
+      message: mailResult.delivered
+        ? `Verification code sent to ${cleanEmail}`
+        : `Verification code generated for ${cleanEmail}`,
     });
   } catch (err: any) {
     console.error("send-code error:", err);

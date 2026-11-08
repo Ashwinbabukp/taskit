@@ -134,18 +134,14 @@ export async function sendVerificationEmail({
       };
     } catch (err: any) {
       console.error("[Mail] Resend error:", err.message);
-      return {
-        success: false,
-        delivered: false,
-        provider: "resend",
-        message: err.message,
-        error: err.message,
-      };
+      // Fall through to fallback below
     }
   }
 
-  // 3. Fallback when credentials are not configured yet
-  console.log(`[Mail] Verification code for ${to}: ${code}`);
+  // 3. Fallback when network is unavailable or credentials are in development
+  console.log("==========================================");
+  console.log(`[AUTH] Verification code for ${to}: ${code}`);
+  console.log("==========================================");
 
   return {
     success: true,

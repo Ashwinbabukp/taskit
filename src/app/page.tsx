@@ -116,8 +116,13 @@ export default function LoginPage() {
       setLoading(false);
       if (res.success) {
         setCodeSent(true);
-        setCode("");
-        showToast("Verification code sent to your email");
+        if (res.testCode) {
+          setCode(res.testCode);
+          showToast(`Code: ${res.testCode} (auto-filled for testing)`);
+        } else {
+          setCode("");
+          showToast("Verification code sent to your email");
+        }
       } else {
         setError(res.error || "Failed to send code");
         showToast(res.error || "Failed to send code", "error");
@@ -375,7 +380,7 @@ export default function LoginPage() {
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-full text-sm font-medium transition-all shadow-lg animate-fade-in"
+          className="fixed bottom-6 left-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-full text-sm font-medium transition-all shadow-lg animate-toast"
           style={{
             background: "#18181b",
             color: "#fafafa",

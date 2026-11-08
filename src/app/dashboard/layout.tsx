@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 
 export default function DashboardLayout({
@@ -12,6 +12,8 @@ export default function DashboardLayout({
 }) {
   const { isLoggedIn, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const isJourney = pathname?.startsWith("/dashboard/journey");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dark, setDark] = useState(false);
 
@@ -43,13 +45,16 @@ export default function DashboardLayout({
   if (!isLoggedIn) return null;
 
   return (
-    <div className="flex min-h-screen" style={{ background: "var(--bg)" }}>
+    <div
+      className={`flex ${isJourney ? "h-screen overflow-hidden" : "min-h-screen"}`}
+      style={{ background: "var(--bg)" }}
+    >
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
         {/* Top bar */}
         <div
-          className="h-[52px] flex items-center gap-2.5 px-5 sticky top-0 z-10"
+          className="h-[52px] flex-none flex items-center gap-2.5 px-5 sticky top-0 z-10"
           style={{
             borderBottom: "1px solid var(--line)",
             background: "var(--bg)",
@@ -102,7 +107,15 @@ export default function DashboardLayout({
         </div>
 
         {/* Content area */}
-        <div className="p-5 max-w-[1100px]">{children}</div>
+        {isJourney ? (
+          <div className="p-3 sm:p-5 flex-1 min-h-0 flex flex-col w-full overflow-hidden">
+            {children}
+          </div>
+        ) : (
+          <div className="p-5 max-w-[1100px] w-full flex-1 overflow-y-auto">
+            {children}
+          </div>
+        )}
       </div>
     </div>
   );
