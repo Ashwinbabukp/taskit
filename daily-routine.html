@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daily Routine</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff;--side:#f8f8f8;--card:#f8f8f8;--line:#ededed;--ink:#171717;--mute:#7c7c7c;--act:#fff;--btn:#171717;--btnt:#fff;--b1:#3b82f6;--b2:#4ade80;--hover:#efefef;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101010;--side:#171717;--card:#1c1c1c;--line:#2a2a2a;--ink:#ededed;--mute:#8f8f8f;--act:#2a2a2a;--btn:#ededed;--btnt:#101010;--hover:#242424;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101010;--side:#171717;--card:#1c1c1c;--line:#2a2a2a;--ink:#ededed;--mute:#8f8f8f;--act:#2a2a2a;--btn:#ededed;--btnt:#101010;--hover:#242424;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 Inter,system-ui,sans-serif;display:flex;min-height:100vh}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+:focus-visible{outline:2px solid var(--b1);outline-offset:2px}
+svg.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+aside{width:240px;background:var(--side);border-right:1px solid var(--line);padding:10px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;flex:none}
+.brand{display:flex;align-items:center;gap:10px;padding:6px}
+.logo{width:32px;height:32px;border-radius:8px;background:var(--btn);color:var(--btnt);display:grid;place-items:center}
+.brand b{display:block;font-weight:600}.brand small{color:var(--mute)}
+.nav{display:flex;flex-direction:column;gap:2px;margin-top:12px}
+.nav a{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:7px;color:var(--ink);text-decoration:none}
+.nav a:hover{background:var(--hover)}
+.nav a.on{background:var(--act);box-shadow:0 0 0 1px var(--line),0 1px 2px rgba(0,0,0,.06)}
+.sync{margin-top:auto;padding:8px;color:var(--mute);font-size:12px}
+.col{flex:1;min-width:0}
+.top{height:52px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 20px;position:sticky;top:0;background:var(--bg);z-index:5}
+.top h1{font-size:16px;font-weight:600;margin:0;flex:1}
+#menu{display:none}
+.b{display:flex;align-items:center;gap:7px;background:var(--hover);border-radius:7px;padding:6px 12px}
+.b:hover{filter:brightness(.96)}
+.b.p{background:var(--btn);color:var(--btnt)}
+.wrap{padding:20px;max-width:1100px}
+.bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.f,select,input[type=text],input[type=date],textarea{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:7px 10px}
+input[type=text]{flex:1;min-width:180px}
+select option{color:#171717}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.k{background:var(--card);border-radius:10px;padding:16px 18px}
+.k span{color:var(--mute)}.k b{display:block;font-size:24px;font-weight:600;margin-top:6px}
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}
+.c{background:var(--card);border-radius:10px;padding:16px 18px}
+.c h2{margin:0;font-size:14px;font-weight:600}.c p{margin:2px 0 10px;color:var(--mute)}
+.leg{display:flex;gap:14px;justify-content:center;margin-top:8px;color:var(--mute)}
+.leg i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+svg.ch{width:100%;height:auto;display:block}
+.ch text{fill:var(--mute);font-size:10px}.ch .g{stroke:var(--line)}
+.none{height:200px;display:grid;place-items:center;color:var(--mute)}
+.list{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.row:last-child{border:0}
+.row input{width:16px;height:16px;accent-color:var(--btn)}
+.row span{flex:1;overflow-wrap:anywhere}.row small{color:var(--mute)}
+.row.done span{text-decoration:line-through;color:var(--mute)}
+.row .x{color:var(--mute);padding:2px 6px}
+.row.j{cursor:pointer}.row.j:hover{background:var(--hover)}
+.empty{padding:28px;text-align:center;color:var(--mute)}
+textarea{width:100%;min-height:260px;resize:vertical;line-height:1.6}
+.hint{color:var(--mute);margin:6px 0 20px}
+@media(max-width:900px){.charts{grid-template-columns:1fr}}
+@media(max-width:800px){aside{position:fixed;z-index:20;left:-250px;transition:left .2s;box-shadow:0 0 30px rgba(0,0,0,.2)}aside.open{left:0}#menu{display:flex}}
+</style>
+</head>
+<body>
+<aside id="side">
+<div class="brand"><span class="logo"><svg class="i" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M8 12l3 3 5-6"/></svg></span><span><b>Daily Routine</b><small>Ashwin K P</small></span></div>
+<nav class="nav" id="nav"></nav>
+<div class="sync" id="sync">Connecting to database…</div>
+</aside>
+<div class="col">
+<div class="top"><button id="menu" class="b" aria-label="Open menu"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><h1 id="ttl"></h1>
+<button class="b" id="theme"><svg class="i" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>Theme</button></div>
+<div class="wrap" id="view"></div>
+</div>
+<script>
+(function(){
+var LK="daily-routine-v1",MK="daily-routine-migrated",db={tasks:[],journal:{}},fs=null,uid=null,$=function(i){return document.getElementById(i)};
+try{var s0=JSON.parse(localStorage.getItem(LK));if(s0){db.tasks=s0.tasks||[];db.journal=s0.journal||{}}}catch(e){}
+function lsave(){try{localStorage.setItem(LK,JSON.stringify({tasks:db.tasks,journal:db.journal}))}catch(e){}}
+function status(t){$("sync").textContent=t}
+function tcol(){return fs.collection("data/users/"+uid+"/tasks")}
+function jcol(){return fs.collection("data/users/"+uid+"/journal")}
+function fail(){status("Could not save to the database")}
+function addTask(t){db.tasks.unshift(t);if(fs)tcol().doc(String(t.id)).set({t:t.t,date:t.date,done:false}).catch(fail);else lsave();render()}
+function patchTask(t,p){for(var k in p)t[k]=p[k];if(fs)tcol().doc(String(t.id)).update(p).catch(fail);else lsave();render()}
+function delTask(t){db.tasks=db.tasks.filter(function(z){return z!==t});if(fs)tcol().doc(String(t.id)).delete().catch(fail);else lsave();render()}
+function putJournal(d,v){if(fs){(v.trim()?jcol().doc(d).set({text:v}):jcol().doc(d).delete()).catch(fail)}else lsave()}
+function soft(){var a=document.activeElement;if(a&&a.tagName==="TEXTAREA")return;render()}
+function ymd(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function ago(n){var d=new Date();d.setDate(d.getDate()-n);return ymd(d)}
+function fmt(s){var p=s.split("-");return new Date(+p[0],+p[1]-1,+p[2]).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})}
+function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+function svg(tag,a,t){var e=document.createElementNS("http://www.w3.org/2000/svg",tag);for(var k in a)e.setAttribute(k,a[k]);if(t!=null)e.textContent=t;return e}
+var P={dash:"M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z",task:"M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M8 12l3 3 5-6",note:"M6 3h9l4 4v14H6zM9 12h7M9 16h7"};
+var R=[["dashboard","Dashboard","dash"],["tasks","Tasks","task"],["journal","Journal","note"]];
+$("nav").innerHTML=R.map(function(r){return '<a href="#'+r[0]+'" data-r="'+r[0]+'"><svg class="i" viewBox="0 0 24 24"><path d="'+P[r[2]]+'"/></svg>'+r[1]+"</a>"}).join("");
+$("menu").onclick=function(){$("side").classList.toggle("open")};
+var dark=false;$("theme").onclick=function(){dark=!dark;document.documentElement.dataset.theme=dark?"dark":"light"};
+var range=30,filter="all",jd=ymd(new Date());
+
+function dashboard(v){
+var days=[];for(var i=range-1;i>=0;i--)days.push(ago(i));
+var ts=db.tasks.filter(function(t){return days.indexOf(t.date)>-1}),dn=ts.filter(function(t){return t.done}).length;
+var je=days.filter(function(d){return db.journal[d]&&db.journal[d].trim()}).length;
+var bar=el("div","bar"),sel=el("select");sel.setAttribute("aria-label","Date range");
+[[7,"Last 7 Days"],[30,"Last 30 Days"],[60,"Last 60 Days"]].forEach(function(o){var op=el("option",0,o[1]);op.value=o[0];if(o[0]===range)op.selected=true;sel.appendChild(op)});
+sel.onchange=function(){range=+sel.value;render()};bar.appendChild(sel);v.appendChild(bar);
+var k=el("div","kpis");[["Total tasks",ts.length],["Completed",dn],["Pending",ts.length-dn],["Completion rate",ts.length?Math.round(dn/ts.length*100)+"%":"0%"],["Journal entries",je]].forEach(function(x){var d=el("div","k");d.appendChild(el("span",0,x[0]));d.appendChild(el("b",0,x[1]));k.appendChild(d)});v.appendChild(k);
+var ch=el("div","charts");v.appendChild(ch);
+chart(ch,"Task trend","Tasks planned and completed each day",ts.length,function(s){
+var m=1;days.forEach(function(d){m=Math.max(m,db.tasks.filter(function(t){return t.date===d}).length)});
+grid(s,m,days);
+[["#3b82f6",function(d){return db.tasks.filter(function(t){return t.date===d}).length}],["#4ade80",function(d){return db.tasks.filter(function(t){return t.date===d&&t.done}).length}]].forEach(function(l){
+s.appendChild(svg("polyline",{points:days.map(function(d,i){return x(i,days.length)+","+(200-l[1](d)/m*180)}).join(" "),fill:"none",stroke:l[0],"stroke-width":2,"stroke-linejoin":"round"}))})},[["var(--b1)","Planned"],["var(--b2)","Completed"]]);
+chart(ch,"Journal activity","Days you wrote a journal entry",je,function(s){
+grid(s,1,days);var w=Math.max(3,Math.min(18,500/days.length-3));
+days.forEach(function(d,i){if(db.journal[d]&&db.journal[d].trim())s.appendChild(svg("rect",{x:x(i,days.length)-w/2,y:20,width:w,height:180,rx:2,fill:"#3b82f6",opacity:.85}))})},[["var(--b1)","Entry written"]]);
+}
+function x(i,n){return 52+i*(530/Math.max(n-1,1))}
+function grid(s,max,days){for(var i=0;i<=4;i++){var y=20+i*45;s.appendChild(svg("line",{x1:44,x2:590,y1:y,y2:y,class:"g"}));s.appendChild(svg("text",{x:36,y:y+3,"text-anchor":"end"},Math.round(max*(4-i)/4*10)/10))}
+var st=Math.ceil(days.length/6);days.forEach(function(d,i){if(i%st===0)s.appendChild(svg("text",{x:x(i,days.length),y:218,"text-anchor":"middle"},d.slice(5)))})}
+function chart(p,t,sub,n,fn,leg){var c=el("div","c");c.appendChild(el("h2",0,t));c.appendChild(el("p",0,sub));
+if(!n)c.appendChild(el("div","none","No data to show"));
+else{var s=svg("svg",{viewBox:"0 0 600 230",class:"ch"});fn(s);c.appendChild(s);var l=el("div","leg");leg.forEach(function(q){var sp=el("span");var i=el("i");i.style.background=q[0];sp.append(i,q[1]);l.appendChild(sp)});c.appendChild(l)}
+p.appendChild(c)}
+
+function tasks(v){
+var bar=el("div","bar"),inp=el("input");inp.type="text";inp.placeholder="Add a task";inp.maxLength=140;inp.setAttribute("aria-label","Task");
+var dt=el("input");dt.type="date";dt.value=ymd(new Date());dt.setAttribute("aria-label","Task date");
+var add=el("button","b p","Add task");
+function go(){var t=inp.value.trim();if(!t||!dt.value)return;addTask({id:Date.now(),t:t,date:dt.value,done:false})}
+add.onclick=go;inp.onkeydown=function(e){if(e.key==="Enter")go()};
+var fs=el("select");fs.setAttribute("aria-label","Filter");[["all","All"],["pending","Pending"],["done","Completed"]].forEach(function(o){var op=el("option",0,o[1]);op.value=o[0];if(o[0]===filter)op.selected=true;fs.appendChild(op)});
+fs.onchange=function(){filter=fs.value;render()};
+bar.append(inp,dt,add,fs);v.appendChild(bar);
+var l=db.tasks.filter(function(t){return filter==="all"||(filter==="done")===t.done}).sort(function(a,b){return a.date<b.date?1:-1});
+var box=el("div","list");
+if(!l.length)box.appendChild(el("div","empty","No tasks yet"));
+l.forEach(function(t){var r=el("div","row"+(t.done?" done":"")),c=el("input");c.type="checkbox";c.checked=t.done;c.setAttribute("aria-label","Mark done");
+c.onchange=function(){patchTask(t,{done:c.checked})};
+var x=el("button","x","×");x.setAttribute("aria-label","Delete task");x.onclick=function(){delTask(t)};
+r.append(c,el("span",0,t.t),el("small",0,fmt(t.date)),x);box.appendChild(r)});
+v.appendChild(box)}
+
+function journal(v){
+var bar=el("div","bar"),d=el("input");d.type="date";d.value=jd;d.setAttribute("aria-label","Journal date");
+d.onchange=function(){if(d.value){jd=d.value;render()}};bar.appendChild(d);v.appendChild(bar);
+var ta=el("textarea");ta.placeholder="Write about your day";ta.value=db.journal[jd]||"";ta.setAttribute("aria-label","Journal entry");
+var st=el("p","hint","Saved automatically"),tm;
+ta.oninput=function(){var d0=jd,v=ta.value;db.journal[d0]=v;if(!v.trim())delete db.journal[d0];st.textContent="Saving…";clearTimeout(tm);tm=setTimeout(function(){putJournal(d0,v);st.textContent="Saved";list()},400)};
+v.append(ta,st);var box=el("div","list");v.appendChild(box);
+function list(){box.innerHTML="";var ks=Object.keys(db.journal).sort().reverse();
+if(!ks.length)box.appendChild(el("div","empty","No entries yet"));
+ks.forEach(function(k){var r=el("div","row j"),tx=db.journal[k];r.append(el("span",0,tx.length>90?tx.slice(0,90)+"…":tx),el("small",0,fmt(k)));r.onclick=function(){jd=k;render()};box.appendChild(r)})}
+list()}
+
+function render(){
+var h=(location.hash||"#dashboard").slice(1);if(!R.some(function(r){return r[0]===h}))h="dashboard";
+[].forEach.call($("nav").children,function(a){a.classList.toggle("on",a.dataset.r===h)});
+$("ttl").textContent=R.filter(function(r){return r[0]===h})[0][1];
+var v=$("view");v.innerHTML="";({dashboard:dashboard,tasks:tasks,journal:journal})[h](v);$("side").classList.remove("open")}
+window.addEventListener("hashchange",render);render();
+(async function(){
+var tm=setTimeout(function(){status("Can’t reach the database yet. Showing data saved in this browser.")},10000);
+function off(m){clearTimeout(tm);status(m)}
+try{
+if(!window.claude||!claude.use){off("Database unavailable. Saved in this browser only.");return}
+var u=await claude.use("user"),d=await claude.use("db");
+if(!u||!d){off("Database unavailable. Saved in this browser only.");return}
+uid=await u.id();fs=d}catch(e){off("Database unavailable. Saved in this browser only.");return}
+var local={tasks:db.tasks.slice(),journal:Object.assign({},db.journal)},ready={};
+db.tasks=[];db.journal={};render();
+function err(){off("Could not reach the database")}
+function got(k,live){ready[k]=live;if(!(ready.t&&ready.j))return;off("Saved to your database");migrate();soft()}
+tcol().onSnapshot(function(s){db.tasks=s.docs.map(function(x){var o=x.data();return{id:x.id,t:o.t,date:o.date,done:!!o.done}});got("t",!s.fromCache);soft()},err);
+jcol().onSnapshot(function(s){var j={};s.docs.forEach(function(x){j[x.id]=x.data().text||""});db.journal=j;got("j",!s.fromCache);soft()},err);
+function migrate(){var done=false;try{done=localStorage.getItem(MK)}catch(e){}if(done)return;
+var have={};db.tasks.forEach(function(t){have[t.id]=1});
+local.tasks.forEach(function(t){if(!have[String(t.id)])tcol().doc(String(t.id)).set({t:t.t,date:t.date,done:!!t.done}).catch(fail)});
+Object.keys(local.journal).forEach(function(k){if(!(k in db.journal)&&String(local.journal[k]).trim())jcol().doc(k).set({text:local.journal[k]}).catch(fail)});
+try{localStorage.setItem(MK,"1")}catch(e){}}
+})();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-bg: var(--bg);
+  --color-side: var(--side);
+  --color-card: var(--card);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-mute: var(--mute);
+  --color-act: var(--act);
+  --color-btn: var(--btn);
+  --color-btnt: var(--btnt);
+  --color-hover: var(--hover-color);
+  --color-b1: var(--b1);
+  --color-b2: var(--b2);
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  --bg: #fff;
+  --side: #f8f8f8;
+  --card: #f8f8f8;
+  --line: #ededed;
+  --ink: #171717;
+  --mute: #7c7c7c;
+  --act: #fff;
+  --btn: #171717;
+  --btnt: #fff;
+  --b1: #3b82f6;
+  --b2: #4ade80;
+  --hover-color: #efefef;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: #101010;
+    --foreground: #ededed;
+
+    --bg: #101010;
+    --side: #171717;
+    --card: #1c1c1c;
+    --line: #2a2a2a;
+    --ink: #ededed;
+    --mute: #8f8f8f;
+    --act: #2a2a2a;
+    --btn: #ededed;
+    --btnt: #101010;
+    --hover-color: #242424;
+    color-scheme: dark;
+  }
+}
+
+[data-theme="dark"] {
+  --background: #101010;
+  --foreground: #ededed;
+
+  --bg: #101010;
+  --side: #171717;
+  --card: #1c1c1c;
+  --line: #2a2a2a;
+  --ink: #ededed;
+  --mute: #8f8f8f;
+  --act: #2a2a2a;
+  --btn: #ededed;
+  --btnt: #101010;
+  --hover-color: #242424;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+select option {
+  color: #171717;
+}
