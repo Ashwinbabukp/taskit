@@ -17,13 +17,13 @@ export async function sendVerificationEmail({
   to,
   code,
 }: SendVerificationEmailOptions): Promise<SendMailResult> {
-  const resendApiKey = process.env.RESEND_API_KEY;
-  const smtpHost = process.env.SMTP_HOST;
+  const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
   const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-  const smtpPort = parseInt(process.env.SMTP_PORT || "587", 10);
+  const smtpPass = (process.env.SMTP_PASS || "").replace(/\s+/g, "");
+  const smtpPort = parseInt(process.env.SMTP_PORT || "465", 10);
   const smtpSecure = process.env.SMTP_SECURE === "true" || smtpPort === 465;
-  const emailFrom = process.env.EMAIL_FROM || "taskit <onboarding@resend.dev>";
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const emailFrom = process.env.EMAIL_FROM || (smtpUser ? `"taskit" <${smtpUser}>` : "taskit <onboarding@resend.dev>");
 
   const emailHtml = `
     <!DOCTYPE html>
@@ -61,7 +61,41 @@ export async function sendVerificationEmail({
     </html>
   `;
 
-  // 1. Try Resend if RESEND_API_KEY is configured
+  // 1. Prioritize Gmail SMTP if configured (can send to ANY email address in the world!)
+  if (smtpUser && smtpPass) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpSecure,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      });
+
+      await transporter.sendMail({
+        from: emailFrom,
+        to,
+        subject: `${code} is your taskit verification code`,
+        text: `Your taskit verification code is: ${code}. It expires in 10 minutes.`,
+        html: emailHtml,
+      });
+
+      console.log(`[Mail] Real email delivered to ${to} via Gmail SMTP (${smtpUser})`);
+      return {
+        success: true,
+        delivered: true,
+        provider: "gmail-smtp",
+        message: `Verification code sent to ${to}`,
+      };
+    } catch (err: any) {
+      console.error("[Mail] Gmail SMTP error:", err.message);
+      // Fall through to Resend if available
+    }
+  }
+
+  // 2. Try Resend as secondary option
   if (resendApiKey) {
     try {
       const res = await fetch("https://api.resend.com/emails", {
@@ -71,7 +105,7 @@ export async function sendVerificationEmail({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: emailFrom,
+          from: emailFrom.includes("@resend.dev") ? emailFrom : "taskit <onboarding@resend.dev>",
           to: [to],
           subject: `${code} is your taskit verification code`,
           html: emailHtml,
@@ -104,46 +138,6 @@ export async function sendVerificationEmail({
         success: false,
         delivered: false,
         provider: "resend",
-        message: err.message,
-        error: err.message,
-      };
-    }
-  }
-
-  // 2. Try SMTP (Nodemailer) if SMTP_HOST or SMTP_USER & SMTP_PASS are provided
-  if (smtpUser && smtpPass) {
-    try {
-      const transporter = nodemailer.createTransport({
-        host: smtpHost || "smtp.gmail.com",
-        port: smtpPort,
-        secure: smtpSecure,
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-      });
-
-      await transporter.sendMail({
-        from: emailFrom,
-        to,
-        subject: `${code} is your taskit verification code`,
-        text: `Your taskit verification code is: ${code}. It expires in 10 minutes.`,
-        html: emailHtml,
-      });
-
-      console.log(`[Mail] Real email delivered to ${to} via SMTP (${smtpHost || "smtp.gmail.com"})`);
-      return {
-        success: true,
-        delivered: true,
-        provider: "smtp",
-        message: `Verification code sent to ${to}`,
-      };
-    } catch (err: any) {
-      console.error("[Mail] SMTP error:", err.message);
-      return {
-        success: false,
-        delivered: false,
-        provider: "smtp",
         message: err.message,
         error: err.message,
       };
