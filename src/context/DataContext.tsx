@@ -40,28 +40,104 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [db, setDb] = useState<AppData>({ tasks: [], journal: {} });
   const [loading, setLoading] = useState(false);
 
-  // Fetch data from database when user is logged in
+  const getStorageKey = useCallback(() => {
+    return userEmail ? `taskit_data_${userEmail.toLowerCase().trim()}` : null;
+  }, [userEmail]);
+
+  const loadLocalData = useCallback((): AppData => {
+    const key = getStorageKey();
+    if (!key || typeof window === "undefined") return { tasks: [], journal: {} };
+    try {
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return {
+          tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
+          journal: parsed.journal && typeof parsed.journal === "object" ? parsed.journal : {},
+        };
+      }
+    } catch (e) {}
+    return { tasks: [], journal: {} };
+  }, [getStorageKey]);
+
+  const saveLocalData = useCallback(
+    (data: AppData) => {
+      const key = getStorageKey();
+      if (!key || typeof window === "undefined") return;
+      try {
+        localStorage.setItem(key, JSON.stringify(data));
+      } catch (e) {}
+    },
+    [getStorageKey]
+  );
+
+  // Fetch and sync data when user logs in or switches account
   const fetchData = useCallback(async () => {
-    if (!isLoggedIn) {
+    if (!isLoggedIn || !userEmail) {
       setDb({ tasks: [], journal: {} });
       return;
     }
+
+    // 1. Immediately load this specific user's saved data from browser storage
+    const local = loadLocalData();
+    setDb(local);
+
+    // 2. Sync with server/Supabase in the background
     setLoading(true);
     try {
       const res = await fetch("/api/data");
       if (res.ok) {
-        const data = await res.json();
-        setDb({
-          tasks: data.tasks || [],
-          journal: data.journal || {},
-        });
+        const serverData = await res.json();
+        const serverTasks: Task[] = Array.isArray(serverData.tasks) ? serverData.tasks : [];
+        const serverJournal: Record<string, string> =
+          serverData.journal && typeof serverData.journal === "object" ? serverData.journal : {};
+
+        // Merge: local + server (server updates or local offline additions)
+        const taskMap = new Map<string, Task>();
+        for (const t of local.tasks) {
+          taskMap.set(String(t.id), t);
+        }
+        for (const t of serverTasks) {
+          taskMap.set(String(t.id), t);
+        }
+
+        const mergedTasks = Array.from(taskMap.values()).sort((a, b) => (a.date < b.date ? 1 : -1));
+        const mergedJournal = { ...local.journal, ...serverJournal };
+
+        const updatedData: AppData = {
+          tasks: mergedTasks,
+          journal: mergedJournal,
+        };
+
+        setDb(updatedData);
+        saveLocalData(updatedData);
+
+        // If local had tasks not yet in server (e.g. Supabase tables were down or just created), sync them up!
+        if (serverTasks.length === 0 && local.tasks.length > 0) {
+          for (const t of local.tasks) {
+            fetch("/api/tasks", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(t),
+            }).catch(() => {});
+          }
+        }
+        if (Object.keys(serverJournal).length === 0 && Object.keys(local.journal).length > 0) {
+          for (const [d, text] of Object.entries(local.journal)) {
+            fetch("/api/journal", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ date: d, text }),
+            }).catch(() => {});
+          }
+        }
       }
     } catch (err) {
-      console.error("Failed to fetch user data:", err);
+      console.error("Failed to fetch user data from server:", err);
     } finally {
       setLoading(false);
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, userEmail, loadLocalData, saveLocalData]);
 
   useEffect(() => {
     fetchData();
@@ -69,8 +145,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const addTask = useCallback(
     async (task: Task) => {
-      // Optimistic update
-      setDb((prev) => ({ ...prev, tasks: [task, ...prev.tasks] }));
+      setDb((prev) => {
+        const next: AppData = { ...prev, tasks: [task, ...prev.tasks] };
+        saveLocalData(next);
+        return next;
+      });
+
       try {
         await fetch("/api/tasks", {
           method: "POST",
@@ -81,15 +161,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.error("Failed to add task to db:", err);
       }
     },
-    []
+    [saveLocalData]
   );
 
   const patchTask = useCallback(
     async (task: Task, patch: Partial<Task>) => {
-      setDb((prev) => ({
-        ...prev,
-        tasks: prev.tasks.map((t) => (t.id === task.id ? { ...t, ...patch } : t)),
-      }));
+      setDb((prev) => {
+        const next: AppData = {
+          ...prev,
+          tasks: prev.tasks.map((t) => (t.id === task.id ? { ...t, ...patch } : t)),
+        };
+        saveLocalData(next);
+        return next;
+      });
+
       try {
         await fetch("/api/tasks", {
           method: "PATCH",
@@ -100,15 +185,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.error("Failed to update task in db:", err);
       }
     },
-    []
+    [saveLocalData]
   );
 
   const delTask = useCallback(
     async (task: Task) => {
-      setDb((prev) => ({
-        ...prev,
-        tasks: prev.tasks.filter((t) => t.id !== task.id),
-      }));
+      setDb((prev) => {
+        const next: AppData = {
+          ...prev,
+          tasks: prev.tasks.filter((t) => t.id !== task.id),
+        };
+        saveLocalData(next);
+        return next;
+      });
+
       try {
         await fetch("/api/tasks", {
           method: "DELETE",
@@ -119,7 +209,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.error("Failed to delete task from db:", err);
       }
     },
-    []
+    [saveLocalData]
   );
 
   const putJournal = useCallback(
@@ -131,8 +221,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         } else {
           delete nextJournal[date];
         }
-        return { ...prev, journal: nextJournal };
+        const next: AppData = { ...prev, journal: nextJournal };
+        saveLocalData(next);
+        return next;
       });
+
       try {
         await fetch("/api/journal", {
           method: "POST",
@@ -143,7 +236,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.error("Failed to save journal to db:", err);
       }
     },
-    []
+    [saveLocalData]
   );
 
   return (
