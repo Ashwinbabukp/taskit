@@ -24,6 +24,19 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type?: "success" | "error" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+  };
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   useEffect(() => {
     if (!authLoading && isLoggedIn) {
@@ -90,9 +103,11 @@ export default function LoginPage() {
       const res = await verifyCode(email.trim(), code.trim());
       setLoading(false);
       if (res.success) {
+        showToast("Logged in successfully!");
         router.push("/dashboard");
       } else {
         setError(res.error || "Invalid verification code");
+        showToast(res.error || "Invalid verification code", "error");
       }
     } else {
       // Send code
@@ -102,8 +117,10 @@ export default function LoginPage() {
       if (res.success) {
         setCodeSent(true);
         setCode("");
+        showToast("Verification code sent to your email");
       } else {
         setError(res.error || "Failed to send code");
+        showToast(res.error || "Failed to send code", "error");
       }
     }
   };
@@ -352,6 +369,52 @@ export default function LoginPage() {
           </button>
         </p>
       </div>
+
+      {/* Minimal Toast Notification */}
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-full text-sm font-medium transition-all shadow-lg animate-fade-in"
+          style={{
+            background: "#18181b",
+            color: "#fafafa",
+            border: "1px solid rgba(255, 255, 255, 0.14)",
+            boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.35)",
+          }}
+        >
+          {toast.type === "error" ? (
+            <svg
+              className="w-4 h-4 flex-none"
+              style={{ color: "#f87171" }}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          ) : (
+            <svg
+              className="w-4 h-4 flex-none"
+              style={{ color: "#34d399" }}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          )}
+          <span>{toast.message}</span>
+        </div>
+      )}
     </div>
   );
 }
