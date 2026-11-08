@@ -1,24 +1,46 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db, generateSessionToken } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
     const email = (body.email || "user@gmail.com").trim().toLowerCase();
 
-    const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
-    if (!existing) {
-      db.prepare("INSERT INTO users (email) VALUES (?)").run(email);
+    try {
+      await supabase.from("users").upsert({ email }, { onConflict: "email" });
+    } catch (e) {}
+
+    if (db) {
+      try {
+        const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
+        if (!existing) {
+          db.prepare("INSERT INTO users (email) VALUES (?)").run(email);
+        }
+      } catch (e) {}
     }
 
     const token = generateSessionToken();
     const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
-    db.prepare("INSERT INTO sessions (token, user_email, expires_at) VALUES (?, ?, ?)").run(
-      token,
-      email,
-      expiresAt
-    );
+
+    try {
+      await supabase.from("sessions").insert({
+        token,
+        user_email: email,
+        expires_at: expiresAt,
+      });
+    } catch (e) {}
+
+    if (db) {
+      try {
+        db.prepare("INSERT INTO sessions (token, user_email, expires_at) VALUES (?, ?, ?)").run(
+          token,
+          email,
+          expiresAt
+        );
+      } catch (e) {}
+    }
 
     const cookieStore = await cookies();
     cookieStore.set("taskit_session", token, {
@@ -38,4 +60,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Failed to authenticate" }, { status: 500 });
   }
 }
-

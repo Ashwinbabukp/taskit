@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db, generateCode } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import { sendVerificationEmail } from "@/lib/mail";
 
 export async function POST(req: Request) {
@@ -13,19 +14,39 @@ export async function POST(req: Request) {
     const code = generateCode();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(cleanEmail);
-
-    if (existing) {
-      db.prepare(
-        "UPDATE users SET verification_code = ?, code_expires_at = ? WHERE email = ?"
-      ).run(code, expiresAt, cleanEmail);
-    } else {
-      db.prepare(
-        "INSERT INTO users (email, verification_code, code_expires_at) VALUES (?, ?, ?)"
-      ).run(cleanEmail, code, expiresAt);
+    // 1. Save to Supabase (primary in production)
+    try {
+      await supabase.from("users").upsert(
+        {
+          email: cleanEmail,
+          verification_code: code,
+          code_expires_at: expiresAt,
+        },
+        { onConflict: "email" }
+      );
+    } catch (sbErr) {
+      console.log("[Supabase] send-code upsert:", sbErr);
     }
 
-    // Call real email service
+    // 2. Save to SQLite (local development fallback)
+    if (db) {
+      try {
+        const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(cleanEmail);
+        if (existing) {
+          db.prepare(
+            "UPDATE users SET verification_code = ?, code_expires_at = ? WHERE email = ?"
+          ).run(code, expiresAt, cleanEmail);
+        } else {
+          db.prepare(
+            "INSERT INTO users (email, verification_code, code_expires_at) VALUES (?, ?, ?)"
+          ).run(cleanEmail, code, expiresAt);
+        }
+      } catch (dbErr) {
+        console.log("[SQLite] send-code error:", dbErr);
+      }
+    }
+
+    // 3. Dispatch real verification email
     const mailResult = await sendVerificationEmail({ to: cleanEmail, code });
 
     if (!mailResult.success && mailResult.error) {

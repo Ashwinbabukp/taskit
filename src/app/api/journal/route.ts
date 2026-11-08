@@ -41,20 +41,24 @@ export async function POST(req: Request) {
       console.log("[Supabase] Journal upsert error:", e);
     }
 
-    // 2. Always persist to SQLite
-    if (!cleanText) {
-      db.prepare("DELETE FROM journals WHERE user_email = ? AND date = ?").run(
-        user.email,
-        date
-      );
-    } else {
-      db.prepare(`
-        INSERT INTO journals (id, user_email, date, text, updated_at)
-        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-        ON CONFLICT(user_email, date) DO UPDATE SET
-          text = excluded.text,
-          updated_at = CURRENT_TIMESTAMP
-      `).run(`${user.email}_${date}`, user.email, date, cleanText);
+    // 2. Persist to SQLite if available
+    if (db) {
+      try {
+        if (!cleanText) {
+          db.prepare("DELETE FROM journals WHERE user_email = ? AND date = ?").run(
+            user.email,
+            date
+          );
+        } else {
+          db.prepare(`
+            INSERT INTO journals (id, user_email, date, text, updated_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_email, date) DO UPDATE SET
+              text = excluded.text,
+              updated_at = CURRENT_TIMESTAMP
+          `).run(`${user.email}_${date}`, user.email, date, cleanText);
+        }
+      } catch (e) {}
     }
 
     return NextResponse.json({ success: true });

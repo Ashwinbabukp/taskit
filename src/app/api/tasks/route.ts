@@ -30,13 +30,17 @@ export async function POST(req: Request) {
       console.log("[Supabase] Insert task error:", e);
     }
 
-    // 2. Always persist to SQLite
-    db.prepare("INSERT OR REPLACE INTO tasks (id, user_email, t, date, done) VALUES (?, ?, ?, ?, 0)").run(
-      taskId,
-      user.email,
-      t.trim(),
-      date
-    );
+    // 2. Persist to SQLite if available
+    if (db) {
+      try {
+        db.prepare("INSERT OR REPLACE INTO tasks (id, user_email, t, date, done) VALUES (?, ?, ?, ?, 0)").run(
+          taskId,
+          user.email,
+          t.trim(),
+          date
+        );
+      } catch (e) {}
+    }
 
     return NextResponse.json({
       success: true,
@@ -73,21 +77,24 @@ export async function PATCH(req: Request) {
       console.log("[Supabase] Update task error:", e);
     }
 
-    // 2. Always persist to SQLite
-    if (done !== undefined) {
-      db.prepare("UPDATE tasks SET done = ? WHERE id = ? AND user_email = ?").run(
-        done ? 1 : 0,
-        taskId,
-        user.email
-      );
-    }
-
-    if (t !== undefined) {
-      db.prepare("UPDATE tasks SET t = ? WHERE id = ? AND user_email = ?").run(
-        t,
-        taskId,
-        user.email
-      );
+    // 2. Persist to SQLite if available
+    if (db) {
+      try {
+        if (done !== undefined) {
+          db.prepare("UPDATE tasks SET done = ? WHERE id = ? AND user_email = ?").run(
+            done ? 1 : 0,
+            taskId,
+            user.email
+          );
+        }
+        if (t !== undefined) {
+          db.prepare("UPDATE tasks SET t = ? WHERE id = ? AND user_email = ?").run(
+            t,
+            taskId,
+            user.email
+          );
+        }
+      } catch (e) {}
     }
 
     return NextResponse.json({ success: true });
@@ -114,11 +121,15 @@ export async function DELETE(req: Request) {
       console.log("[Supabase] Delete task error:", e);
     }
 
-    // 2. Always persist to SQLite
-    db.prepare("DELETE FROM tasks WHERE id = ? AND user_email = ?").run(
-      taskId,
-      user.email
-    );
+    // 2. Persist to SQLite if available
+    if (db) {
+      try {
+        db.prepare("DELETE FROM tasks WHERE id = ? AND user_email = ?").run(
+          taskId,
+          user.email
+        );
+      } catch (e) {}
+    }
 
     return NextResponse.json({ success: true });
   } catch (err: any) {

@@ -40,33 +40,45 @@ export async function GET() {
       console.log("[Supabase] Reading fallback to SQLite:", sbErr);
     }
 
-    // 2. Fallback to SQLite
-    const tasks = db
-      .prepare(
-        "SELECT id, t, date, done FROM tasks WHERE user_email = ? ORDER BY date DESC, created_at DESC"
-      )
-      .all(user.email) as Array<{ id: string; t: string; date: string; done: number }>;
+    // 2. Fallback to SQLite if available
+    if (db) {
+      try {
+        const tasks = db
+          .prepare(
+            "SELECT id, t, date, done FROM tasks WHERE user_email = ? ORDER BY date DESC, created_at DESC"
+          )
+          .all(user.email) as Array<{ id: string; t: string; date: string; done: number }>;
 
-    const formattedTasks = tasks.map((t) => ({
-      id: Number(t.id) || t.id,
-      t: t.t,
-      date: t.date,
-      done: Boolean(t.done),
-    }));
+        const formattedTasks = tasks.map((t) => ({
+          id: Number(t.id) || t.id,
+          t: t.t,
+          date: t.date,
+          done: Boolean(t.done),
+        }));
 
-    const journalRows = db
-      .prepare("SELECT date, text FROM journals WHERE user_email = ?")
-      .all(user.email) as Array<{ date: string; text: string }>;
+        const journalRows = db
+          .prepare("SELECT date, text FROM journals WHERE user_email = ?")
+          .all(user.email) as Array<{ date: string; text: string }>;
 
-    const journal: Record<string, string> = {};
-    for (const row of journalRows) {
-      journal[row.date] = row.text;
+        const journal: Record<string, string> = {};
+        for (const row of journalRows) {
+          journal[row.date] = row.text;
+        }
+
+        return NextResponse.json({
+          tasks: formattedTasks,
+          journal,
+          source: "sqlite",
+        });
+      } catch (dbErr) {
+        console.log("[SQLite] Fetch data error:", dbErr);
+      }
     }
 
     return NextResponse.json({
-      tasks: formattedTasks,
-      journal,
-      source: "sqlite",
+      tasks: [],
+      journal: {},
+      source: "empty",
     });
   } catch (err: any) {
     console.error("fetch data error:", err);

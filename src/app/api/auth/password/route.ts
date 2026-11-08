@@ -15,12 +15,39 @@ export async function POST(req: Request) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const user = db.prepare("SELECT id, password_hash FROM users WHERE email = ?").get(cleanEmail) as
-      | { id: number; password_hash: string | null }
-      | undefined;
+    let existingPasswordHash: string | null = null;
+    let userExists = false;
+
+    // 1. Check Supabase
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .select("password_hash")
+        .eq("email", cleanEmail)
+        .single();
+
+      if (!error && data) {
+        userExists = true;
+        existingPasswordHash = data.password_hash;
+      }
+    } catch (e) {}
+
+    // 2. Check SQLite
+    if (!userExists && db) {
+      try {
+        const user = db.prepare("SELECT password_hash FROM users WHERE email = ?").get(cleanEmail) as
+          | { password_hash: string | null }
+          | undefined;
+
+        if (user) {
+          userExists = true;
+          existingPasswordHash = user.password_hash;
+        }
+      } catch (e) {}
+    }
 
     if (isSignUp) {
-      if (user && user.password_hash) {
+      if (userExists && existingPasswordHash) {
         return NextResponse.json(
           { error: "An account with this email already exists. Please log in." },
           { status: 400 }
@@ -28,51 +55,72 @@ export async function POST(req: Request) {
       }
 
       const passHash = hashPassword(password);
-      if (user) {
-        db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(passHash, user.id);
-      } else {
-        db.prepare("INSERT INTO users (email, password_hash) VALUES (?, ?)").run(cleanEmail, passHash);
-      }
 
-      // Sync to Supabase
+      // Save to Supabase
       try {
-        await supabase.from("users").upsert({ email: cleanEmail, password_hash: passHash }, { onConflict: "email" });
-      } catch (e) {
-        console.log("[Supabase] Sync user error:", e);
+        await supabase
+          .from("users")
+          .upsert({ email: cleanEmail, password_hash: passHash }, { onConflict: "email" });
+      } catch (e) {}
+
+      // Save to SQLite
+      if (db) {
+        try {
+          db.prepare("INSERT OR REPLACE INTO users (email, password_hash) VALUES (?, ?)").run(
+            cleanEmail,
+            passHash
+          );
+        } catch (e) {}
       }
     } else {
       // Login mode
-      if (!user) {
-        // Auto-register if user doesn't exist yet for friendly onboarding
+      if (!userExists || !existingPasswordHash) {
+        // Auto-register password for seamless login
         const passHash = hashPassword(password);
-        db.prepare("INSERT INTO users (email, password_hash) VALUES (?, ?)").run(cleanEmail, passHash);
         try {
-          await supabase.from("users").upsert({ email: cleanEmail, password_hash: passHash }, { onConflict: "email" });
+          await supabase
+            .from("users")
+            .upsert({ email: cleanEmail, password_hash: passHash }, { onConflict: "email" });
         } catch (e) {}
-      } else if (!user.password_hash) {
-        // Set password for user who signed up with code previously
-        const passHash = hashPassword(password);
-        db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(passHash, user.id);
-        try {
-          await supabase.from("users").upsert({ email: cleanEmail, password_hash: passHash }, { onConflict: "email" });
-        } catch (e) {}
+        if (db) {
+          try {
+            db.prepare("INSERT OR REPLACE INTO users (email, password_hash) VALUES (?, ?)").run(
+              cleanEmail,
+              passHash
+            );
+          } catch (e) {}
+        }
       } else {
         // Verify existing password
-        const ok = verifyPassword(password, user.password_hash);
+        const ok = verifyPassword(password, existingPasswordHash);
         if (!ok) {
           return NextResponse.json({ error: "Incorrect password" }, { status: 401 });
         }
       }
     }
 
-    // Create session
+    // Create session (valid for 30 days)
     const token = generateSessionToken();
     const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
-    db.prepare("INSERT INTO sessions (token, user_email, expires_at) VALUES (?, ?, ?)").run(
-      token,
-      cleanEmail,
-      expiresAt
-    );
+
+    try {
+      await supabase.from("sessions").insert({
+        token,
+        user_email: cleanEmail,
+        expires_at: expiresAt,
+      });
+      await supabase.from("users").upsert({ email: cleanEmail }, { onConflict: "email" });
+    } catch (e) {}
+
+    if (db) {
+      try {
+        db.prepare("INSERT INTO sessions (token, user_email, expires_at) VALUES (?, ?, ?)").run(
+          token,
+          cleanEmail,
+          expiresAt
+        );
+      } catch (e) {}
+    }
 
     const cookieStore = await cookies();
     cookieStore.set("taskit_session", token, {
@@ -92,4 +140,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message || "Authentication failed" }, { status: 500 });
   }
 }
-
