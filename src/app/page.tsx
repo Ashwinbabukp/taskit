@@ -202,75 +202,20 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4 py-8 relative overflow-hidden"
+      className="min-h-screen flex items-center justify-center px-4 py-8"
       data-theme="dark"
-      style={{ background: "#020204", color: "#ededed" }}
+      style={{ background: "#000000", color: "#ededed" }}
     >
-      {/* ========================================================================= */}
-      {/* DYNAMIC HORIZON GLOW GRADIENT BACKGROUNDS (Cross-fade between modes) */}
-      {/* ========================================================================= */}
-      
-      {/* 1. LOGIN BACKGROUND: Dark to Ultra-Violet / Purple Horizon Glow */}
-      <div
-        className="fixed inset-0 pointer-events-none transition-opacity duration-700 ease-in-out"
-        style={{
-          opacity: mode === "login" ? 1 : 0,
-          background: `
-            radial-gradient(130% 40% at 50% 100%, rgba(147, 51, 234, 0.35) 0%, rgba(87, 54, 169, 0.2) 35%, transparent 70%),
-            linear-gradient(180deg, #020204 0%, #020204 42%, #06040f 58%, #150b2e 70%, #2f1866 82%, #4c1d95 90%, #6d28d9 95%, #7c3aed 98%, #8b5cf6 100%)
-          `,
-        }}
-      />
-
-      {/* 2. SIGNUP BACKGROUND: Dark to Deep Sapphire / Electric Cyan Glow */}
-      <div
-        className="fixed inset-0 pointer-events-none transition-opacity duration-700 ease-in-out"
-        style={{
-          opacity: mode === "signup" ? 1 : 0,
-          background: `
-            radial-gradient(130% 40% at 50% 100%, rgba(14, 165, 233, 0.35) 0%, rgba(2, 132, 199, 0.2) 35%, transparent 70%),
-            linear-gradient(180deg, #020204 0%, #020204 42%, #030814 58%, #081d38 70%, #0e3b6e 82%, #0369a1 90%, #0284c7 95%, #0ea5e9 98%, #38bdf8 100%)
-          `,
-        }}
-      />
-
-      {/* 3. FORGOT PASSWORD BACKGROUND: Dark to Warm Amber Sunset Glow */}
-      <div
-        className="fixed inset-0 pointer-events-none transition-opacity duration-700 ease-in-out"
-        style={{
-          opacity: mode === "forgot" ? 1 : 0,
-          background: `
-            radial-gradient(130% 40% at 50% 100%, rgba(245, 158, 11, 0.35) 0%, rgba(180, 83, 9, 0.2) 35%, transparent 70%),
-            linear-gradient(180deg, #020204 0%, #020204 42%, #100602 58%, #2a1106 70%, #5a2609 82%, #78350f 90%, #b45309 95%, #d97706 98%, #f59e0b 100%)
-          `,
-        }}
-      />
-
-      {/* Main Auth Card Container */}
-      <div
-        className="w-full max-w-md relative z-10 p-6 sm:p-8 rounded-2xl border transition-all duration-300"
-        style={{
-          background: "rgba(10, 10, 15, 0.72)",
-          borderColor:
-            mode === "login"
-              ? "rgba(180, 135, 254, 0.2)"
-              : mode === "signup"
-              ? "rgba(91, 192, 248, 0.2)"
-              : "rgba(245, 158, 11, 0.2)",
-          backdropFilter: "blur(16px)",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.8)",
-        }}
-      >
+      <div className="w-full max-w-md">
         {/* ========================================================================= */}
         {/* DISTINCT LOGOS ACCORDING TO AUTH FLOW */}
         {/* ========================================================================= */}
         {mode === "login" && (
           <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-md border transition-all"
+            className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-sm border"
             style={{
-              background: "linear-gradient(135deg, rgba(87, 54, 169, 0.3) 0%, rgba(47, 24, 102, 0.5) 100%)",
-              borderColor: "rgba(180, 135, 254, 0.4)",
-              boxShadow: "0 0 20px rgba(138, 96, 232, 0.2)",
+              background: "#121212",
+              borderColor: "#262626",
             }}
           >
             <svg
@@ -278,10 +223,11 @@ export default function LoginPage() {
               height="24"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#cfa2ff"
+              stroke="currentColor"
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
+              style={{ color: "#ededed" }}
             >
               <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -291,19 +237,15 @@ export default function LoginPage() {
 
         {mode === "signup" && (
           <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-md border transition-all"
-            style={{
-              background: "linear-gradient(135deg, rgba(20, 100, 170, 0.3) 0%, rgba(14, 59, 110, 0.5) 100%)",
-              borderColor: "rgba(91, 192, 248, 0.4)",
-              boxShadow: "0 0 20px rgba(34, 153, 235, 0.2)",
-            }}
+            className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-md"
+            style={{ background: "#0ea5e9" }}
           >
             <svg
               width="26"
               height="26"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#5bc0f8"
+              stroke="white"
               strokeWidth="2.4"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -316,19 +258,15 @@ export default function LoginPage() {
 
         {mode === "forgot" && (
           <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-md border transition-all"
-            style={{
-              background: "linear-gradient(135deg, rgba(147, 66, 13, 0.3) 0%, rgba(90, 38, 9, 0.5) 100%)",
-              borderColor: "rgba(245, 158, 11, 0.4)",
-              boxShadow: "0 0 20px rgba(245, 158, 11, 0.2)",
-            }}
+            className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-md"
+            style={{ background: "#f59e0b" }}
           >
             <svg
               width="24"
               height="24"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#f59e0b"
+              stroke="white"
               strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -814,7 +752,7 @@ export default function LoginPage() {
               </div>
               <span
                 className="relative px-3 text-xs uppercase font-medium"
-                style={{ background: "#0e0e14", color: "var(--mute)" }}
+                style={{ background: "#000000", color: "var(--mute)" }}
               >
                 or
               </span>
