@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { db, verifyPassword } from "@/lib/db";
+import { db, verifyPassword, hashPassword } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 import { signData, verifySignedData } from "@/lib/session";
 
 export async function POST(req: Request) {
   try {
-    const { email, code } = await req.json();
+    const { email, code, newPassword } = await req.json();
     if (!email || !code) {
       return NextResponse.json({ error: "Email and code are required" }, { status: 400 });
     }
@@ -88,19 +88,36 @@ export async function POST(req: Request) {
     // Clear the challenge cookie
     cookieStore.delete("taskit_otp_challenge");
 
-    // Clear code from Supabase & SQLite
+    // Clear code and optionally update password (for forgot-password reset flow)
+    const newPassHash =
+      newPassword && typeof newPassword === "string" && newPassword.length >= 6
+        ? hashPassword(newPassword)
+        : null;
+
     try {
+      const updatePayload: Record<string, any> = {
+        verification_code: null,
+        code_expires_at: null,
+      };
+      if (newPassHash) {
+        updatePayload.password_hash = newPassHash;
+      }
       await supabase
         .from("users")
-        .update({ verification_code: null, code_expires_at: null })
-        .eq("email", cleanEmail);
+        .upsert({ email: cleanEmail, ...updatePayload }, { onConflict: "email" });
     } catch (e) {}
 
     if (db) {
       try {
-        db.prepare(
-          "UPDATE users SET verification_code = NULL, code_expires_at = NULL WHERE email = ?"
-        ).run(cleanEmail);
+        if (newPassHash) {
+          db.prepare(
+            "INSERT INTO users (email, password_hash, verification_code, code_expires_at) VALUES (?, ?, NULL, NULL) ON CONFLICT(email) DO UPDATE SET password_hash = excluded.password_hash, verification_code = NULL, code_expires_at = NULL"
+          ).run(cleanEmail, newPassHash);
+        } else {
+          db.prepare(
+            "UPDATE users SET verification_code = NULL, code_expires_at = NULL WHERE email = ?"
+          ).run(cleanEmail);
+        }
       } catch (e) {}
     }
 

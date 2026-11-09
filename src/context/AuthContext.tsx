@@ -8,7 +8,7 @@ interface AuthContextType {
   loading: boolean;
   loginWithPassword: (email: string, password: string, isSignUp?: boolean) => Promise<{ success: boolean; error?: string }>;
   sendVerificationCode: (email: string) => Promise<{ success: boolean; message?: string; testCode?: string; error?: string }>;
-  verifyCode: (email: string, code: string) => Promise<{ success: boolean; error?: string }>;
+  verifyCode: (email: string, code: string, newPassword?: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
 }
@@ -93,12 +93,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const verifyCode = useCallback(async (email: string, code: string) => {
+  const verifyCode = useCallback(async (email: string, code: string, newPassword?: string) => {
     try {
       const res = await fetch("/api/auth/verify-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code }),
+        body: JSON.stringify({ email, code, newPassword }),
       });
       const data = await res.json();
       if (!res.ok) {
