@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { getSupabaseBrowserClient } from "@/lib/supabase-client";
 
 interface AuthContextType {
   isLoggedIn: boolean;
@@ -114,20 +115,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithGoogle = useCallback(async () => {
     try {
-      const res = await fetch("/api/auth/google", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "google_user@gmail.com" }),
+      const supabase = getSupabaseBrowserClient();
+      const redirectUrl = `${window.location.origin}/auth/callback`;
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: redirectUrl,
+          queryParams: {
+            prompt: "select_account",
+            access_type: "offline",
+          },
+        },
       });
-      const data = await res.json();
-      if (!res.ok) {
-        return { success: false, error: data.error || "Google auth failed" };
+
+      if (error) {
+        return { success: false, error: error.message };
       }
-      setIsLoggedIn(true);
-      setUserEmail(data.user.email);
-      return { success: true };
+
+      if (data?.url) {
+        window.location.href = data.url;
+        return { success: true };
+      }
+
+      return { success: false, error: "Unable to retrieve Google OAuth authorization URL" };
     } catch (err: any) {
-      return { success: false, error: err.message || "Network error" };
+      return { success: false, error: err.message || "Failed to initiate Google authentication" };
     }
   }, []);
 

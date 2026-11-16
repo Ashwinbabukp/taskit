@@ -171,12 +171,9 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     const res = await loginWithGoogle();
-    setLoading(false);
-    if (res.success) {
-      showToast("Signed in with Google!");
-      router.push("/dashboard");
-    } else {
+    if (!res.success) {
       setError(res.error || "Google login failed");
+      setLoading(false);
     }
   };
 

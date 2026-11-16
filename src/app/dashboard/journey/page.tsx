@@ -169,8 +169,8 @@ export default function DailyJourneyPage() {
   // Current selected anchor date
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [view, setView] = useState<"day" | "week" | "month">("day");
-  // Zoom slider state: hour height in pixels (44px min to 120px max)
-  const [hourHeight, setHourHeight] = useState<number>(64);
+  // Zoom toggle state: hour height in pixels (60 = 1x, 90 = 1.5x, 120 = 2x)
+  const [hourHeight, setHourHeight] = useState<number>(60);
 
   // Modals
   const [showRoutineModal, setShowRoutineModal] = useState(false);
@@ -237,6 +237,16 @@ export default function DailyJourneyPage() {
   const selectedYMD = ymd(selectedDate);
   const todayYMD = ymd(new Date());
   const isSelectedToday = selectedYMD === todayYMD;
+
+  const currentDayTasks = useMemo(
+    () => db.tasks.filter((t) => t.date === selectedYMD),
+    [db.tasks, selectedYMD]
+  );
+  const currentDayDone = currentDayTasks.filter((t) => t.done).length;
+  const currentDayRate =
+    currentDayTasks.length > 0
+      ? Math.round((currentDayDone / currentDayTasks.length) * 100)
+      : 0;
 
   // Navigate dates
   const handlePrev = () => {
@@ -426,35 +436,33 @@ export default function DailyJourneyPage() {
             ))}
           </div>
 
-          {/* Zoom Slider Control (for Day & Week Views) */}
+          {/* Zoom Toggle Control (1x, 1.5x, 2x) */}
           {(view === "day" || view === "week") && (
             <div
-              className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-lg border text-xs"
-              style={{ background: "var(--bg)", borderColor: "var(--line)" }}
-              title="Zoom timetable height"
+              className="flex items-center rounded-lg border p-0.5"
+              style={{ background: "var(--card)", borderColor: "var(--line)" }}
+              title="Timetable zoom scale"
             >
-              <button
-                onClick={() => setHourHeight((prev) => Math.max(44, prev - 10))}
-                className="opacity-60 hover:opacity-100 px-1 font-bold text-sm"
-              >
-                −
-              </button>
-              <input
-                type="range"
-                min="44"
-                max="120"
-                value={hourHeight}
-                onChange={(e) => setHourHeight(Number(e.target.value))}
-                className="w-16 h-1.5 accent-blue-500 cursor-pointer"
-                aria-label="Zoom scale"
-              />
-              <button
-                onClick={() => setHourHeight((prev) => Math.min(120, prev + 10))}
-                className="opacity-60 hover:opacity-100 px-1 font-bold text-sm"
-              >
-                +
-              </button>
-              <span className="opacity-50 text-[10px] w-7 text-right">{hourHeight}px</span>
+              {[
+                { label: "1x", height: 60 },
+                { label: "1.5x", height: 90 },
+                { label: "2x", height: 120 },
+              ].map((z) => {
+                const isActive = Math.abs(hourHeight - z.height) < 15;
+                return (
+                  <button
+                    key={z.label}
+                    onClick={() => setHourHeight(z.height)}
+                    className="px-2.5 py-1 rounded-md text-xs font-semibold transition-all"
+                    style={{
+                      background: isActive ? "var(--btn)" : "transparent",
+                      color: isActive ? "var(--btnt)" : "var(--mute)",
+                    }}
+                  >
+                    {z.label}
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -524,6 +532,49 @@ export default function DailyJourneyPage() {
                 </span>
               )}
             </div>
+
+            {/* Daily Task Completion Line */}
+            {currentDayTasks.length > 0 && (
+              <div
+                className="hidden sm:flex items-center gap-2.5 px-3 py-1 rounded-full border shadow-sm"
+                style={{ borderColor: "var(--line)", background: "var(--card)" }}
+                title={`${currentDayDone} of ${currentDayTasks.length} tasks completed (${currentDayRate}%)`}
+              >
+                <span className="text-[11px] font-semibold" style={{ color: "var(--ink)" }}>
+                  {currentDayDone}/{currentDayTasks.length} Done
+                </span>
+                <div
+                  className="w-24 h-2 rounded-full overflow-hidden"
+                  style={{ background: "var(--hover-color)" }}
+                >
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{
+                      width: `${currentDayRate}%`,
+                      background:
+                        currentDayRate === 100
+                          ? "#10b981"
+                          : currentDayRate > 50
+                          ? "#3b82f6"
+                          : "#f59e0b",
+                    }}
+                  />
+                </div>
+                <span
+                  className="text-[11px] font-bold"
+                  style={{
+                    color:
+                      currentDayRate === 100
+                        ? "#10b981"
+                        : currentDayRate > 50
+                        ? "#3b82f6"
+                        : "#f59e0b",
+                  }}
+                >
+                  {currentDayRate}%
+                </span>
+              </div>
+            )}
 
             <div className="flex items-center gap-3 text-[11px] opacity-75">
               <span className="flex items-center gap-1">

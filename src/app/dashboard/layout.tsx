@@ -2,8 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useData } from "@/context/DataContext";
 import { useRouter, usePathname } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import OverdueTasksModal from "@/components/OverdueTasksModal";
+import { calculateStreak, getOverdueTasks } from "@/lib/analytics";
 
 export default function DashboardLayout({
   children,
@@ -11,11 +14,16 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { isLoggedIn, loading } = useAuth();
+  const { db } = useData();
   const router = useRouter();
   const pathname = usePathname();
   const isJourney = pathname?.startsWith("/dashboard/journey");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dark, setDark] = useState(false);
+  const [showOverdueModal, setShowOverdueModal] = useState(false);
+
+  const streak = calculateStreak(db.tasks);
+  const overdueTasks = getOverdueTasks(db.tasks);
 
   useEffect(() => {
     if (!loading && !isLoggedIn) {
@@ -86,6 +94,42 @@ export default function DashboardLayout({
             id="page-title"
           />
 
+          {/* Streak Indicator */}
+          <div
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
+            style={{
+              background:
+                streak.currentStreak > 0
+                  ? "linear-gradient(135deg, rgba(249, 115, 22, 0.18) 0%, rgba(239, 68, 68, 0.18) 100%)"
+                  : "var(--hover-color)",
+              color: streak.currentStreak > 0 ? "#f97316" : "var(--mute)",
+              border:
+                streak.currentStreak > 0
+                  ? "1px solid rgba(249, 115, 22, 0.3)"
+                  : "1px solid var(--line)",
+            }}
+            title={`${streak.currentStreak} day routine streak · Longest: ${streak.longestStreak} days`}
+          >
+            <span>🔥</span>
+            <span>{streak.currentStreak}d Streak</span>
+          </div>
+
+          {/* Overdue alert in top bar */}
+          {overdueTasks.length > 0 && (
+            <button
+              onClick={() => setShowOverdueModal(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold text-amber-500 hover:opacity-85 transition-opacity"
+              style={{
+                background: "rgba(245, 158, 11, 0.12)",
+                border: "1px solid rgba(245, 158, 11, 0.3)",
+              }}
+              title="Click to review overdue tasks"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+              <span>{overdueTasks.length} Overdue</span>
+            </button>
+          )}
+
           <button
             className="flex items-center gap-1.5 rounded-[7px] py-1.5 px-3 text-sm"
             style={{ background: "var(--hover-color)", color: "var(--ink)" }}
@@ -117,6 +161,12 @@ export default function DashboardLayout({
           </div>
         )}
       </div>
+
+      {/* Global Overdue Task Accountability Modal */}
+      <OverdueTasksModal
+        forceOpen={showOverdueModal}
+        onClose={() => setShowOverdueModal(false)}
+      />
     </div>
   );
 }

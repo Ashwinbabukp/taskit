@@ -7,7 +7,11 @@ import { signData } from "@/lib/session";
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const email = (body.email || "user@gmail.com").trim().toLowerCase();
+    const email = body.email ? String(body.email).trim().toLowerCase() : "";
+
+    if (!email || !email.includes("@")) {
+      return NextResponse.json({ error: "A valid email address is required" }, { status: 400 });
+    }
 
     try {
       await supabase.from("users").upsert({ email }, { onConflict: "email" });

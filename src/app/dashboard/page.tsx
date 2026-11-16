@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useData } from "@/context/DataContext";
+import DailyStreakProgress from "@/components/DailyStreakProgress";
+import WeeklyAnalysisView from "@/components/WeeklyAnalysisView";
 
 function ymd(d: Date): string {
   return (
@@ -117,25 +119,41 @@ export default function DashboardPage() {
   const barW = Math.max(3, Math.min(18, 500 / days.length - 3));
 
   return (
-    <>
-      {/* Date range selector */}
-      <div className="flex gap-2.5 mb-4 flex-wrap">
-        <select
-          className="rounded-[7px] py-1.5 px-2.5 text-sm outline-none"
-          style={{
-            background: "var(--bg)",
-            color: "var(--ink)",
-            border: "1px solid var(--line)",
-          }}
-          value={range}
-          onChange={(e) => setRange(Number(e.target.value))}
-          aria-label="Date range"
-        >
-          <option value={7}>Last 7 Days</option>
-          <option value={30}>Last 30 Days</option>
-          <option value={60}>Last 60 Days</option>
-        </select>
-      </div>
+    <div className="flex flex-col gap-6">
+      {/* 1. Daily Streak & Routine Completion Line */}
+      <DailyStreakProgress />
+
+      {/* 2. Weekly Performance Analysis */}
+      <WeeklyAnalysisView />
+
+      {/* 3. Historical Analytics Header & Filter */}
+      <div className="flex flex-col gap-4 pt-4 border-t" style={{ borderColor: "var(--line)" }}>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h3 className="text-base font-bold" style={{ color: "var(--ink)" }}>
+              Historical Analytics
+            </h3>
+            <p className="text-xs" style={{ color: "var(--mute)" }}>
+              Tasks and journal activity trends over time
+            </p>
+          </div>
+
+          <select
+            className="rounded-[7px] py-1.5 px-2.5 text-xs outline-none"
+            style={{
+              background: "var(--bg)",
+              color: "var(--ink)",
+              border: "1px solid var(--line)",
+            }}
+            value={range}
+            onChange={(e) => setRange(Number(e.target.value))}
+            aria-label="Date range"
+          >
+            <option value={7}>Last 7 Days</option>
+            <option value={30}>Last 30 Days</option>
+            <option value={60}>Last 60 Days</option>
+          </select>
+        </div>
 
       {/* KPI cards */}
       <div
@@ -270,7 +288,8 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
-    </>
+      </div>
+    </div>
   );
 }
 
