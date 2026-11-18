@@ -126,10 +126,13 @@ export async function POST(req: Request) {
       } catch (e) {}
     }
 
+    const proto = req.headers.get("x-forwarded-proto") || "";
+    const isHttps = proto === "https" || (req.url && req.url.startsWith("https://"));
+
     const cookieStore = await cookies();
     cookieStore.set("taskit_session", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isHttps,
       sameSite: "lax",
       maxAge: 30 * 24 * 60 * 60,
       path: "/",

@@ -40,13 +40,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (data.user?.email) {
             setIsLoggedIn(true);
             setUserEmail(data.user.email);
-          } else {
-            setIsLoggedIn(false);
-            setUserEmail("");
+            try {
+              localStorage.setItem("taskit_user_email", data.user.email);
+            } catch (e) {}
+            return;
           }
+        }
+        const cached = typeof window !== "undefined" ? localStorage.getItem("taskit_user_email") : null;
+        if (cached) {
+          setIsLoggedIn(true);
+          setUserEmail(cached);
+        } else {
+          setIsLoggedIn(false);
+          setUserEmail("");
         }
       } catch (err) {
         console.error("Failed to check auth status:", err);
+        const cached = typeof window !== "undefined" ? localStorage.getItem("taskit_user_email") : null;
+        if (cached) {
+          setIsLoggedIn(true);
+          setUserEmail(cached);
+        } else {
+          setIsLoggedIn(false);
+          setUserEmail("");
+        }
       } finally {
         setLoading(false);
       }
@@ -67,6 +84,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setIsLoggedIn(true);
       setUserEmail(data.user.email);
+      try {
+        localStorage.setItem("taskit_user_email", data.user.email);
+      } catch (e) {}
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || "Network error" };
@@ -107,6 +127,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setIsLoggedIn(true);
       setUserEmail(data.user.email);
+      try {
+        localStorage.setItem("taskit_user_email", data.user.email);
+      } catch (e) {}
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || "Network error" };
@@ -150,6 +173,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoggedIn(false);
       setUserEmail("");
+      try {
+        localStorage.removeItem("taskit_user_email");
+      } catch (e) {}
       window.location.href = "/";
     }
   }, []);

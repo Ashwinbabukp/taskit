@@ -27,9 +27,9 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (!loading && !isLoggedIn) {
-      router.replace("/");
+      window.location.href = "/";
     }
-  }, [isLoggedIn, loading, router]);
+  }, [isLoggedIn, loading]);
 
   const toggleTheme = () => {
     setDark((prev) => {

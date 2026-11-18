@@ -44,9 +44,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!authLoading && isLoggedIn) {
-      router.replace("/dashboard");
+      window.location.href = "/dashboard";
     }
-  }, [isLoggedIn, authLoading, router]);
+  }, [isLoggedIn, authLoading]);
 
   // --- Login with Email & Password ---
   const handlePasswordLogin = async (e?: React.FormEvent) => {
@@ -65,12 +65,12 @@ export default function LoginPage() {
 
     setLoading(true);
     const res = await loginWithPassword(email.trim(), password, false);
-    setLoading(false);
 
     if (res.success) {
       showToast("Logged in successfully!");
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     } else {
+      setLoading(false);
       setError(res.error || "Login failed. Please check your credentials.");
       showToast(res.error || "Login failed", "error");
     }
@@ -127,12 +127,12 @@ export default function LoginPage() {
 
     setLoading(true);
     const res = await verifyCode(email.trim(), code.trim(), password.trim());
-    setLoading(false);
 
     if (res.success) {
       showToast("Account created successfully! Welcome to taskit.");
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     } else {
+      setLoading(false);
       setError(res.error || "Invalid verification code");
       showToast(res.error || "Invalid verification code", "error");
     }
@@ -155,12 +155,12 @@ export default function LoginPage() {
 
     setLoading(true);
     const res = await verifyCode(email.trim(), code.trim(), newPassword.trim());
-    setLoading(false);
 
     if (res.success) {
       showToast("Password updated successfully! Welcome back.");
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     } else {
+      setLoading(false);
       setError(res.error || "Failed to reset password. Check your code.");
       showToast(res.error || "Failed to reset password", "error");
     }

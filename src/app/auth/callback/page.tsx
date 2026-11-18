@@ -69,7 +69,7 @@ function CallbackHandler() {
           if (res.ok && result.success) {
             if (!mounted) return;
             setStatus("success");
-            router.push("/dashboard");
+            window.location.href = "/dashboard";
             return;
           } else {
             if (!mounted) return;
@@ -92,7 +92,7 @@ function CallbackHandler() {
             const result = await res.json();
             if (res.ok && result.success) {
               setStatus("success");
-              router.push("/dashboard");
+              window.location.href = "/dashboard";
             }
           }
         });
@@ -137,7 +137,7 @@ function CallbackHandler() {
       });
       const result = await res.json();
       if (res.ok && result.success) {
-        router.push("/dashboard");
+        window.location.href = "/dashboard";
       } else {
         alert(result.error || "Failed to sign in");
       }
