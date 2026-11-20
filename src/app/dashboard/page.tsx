@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useData } from "@/context/DataContext";
 import DailyStreakProgress from "@/components/DailyStreakProgress";
 import WeeklyAnalysisView from "@/components/WeeklyAnalysisView";
+import GlassKeycapWidget from "@/components/GlassKeycapWidget";
 
 function ymd(d: Date): string {
   return (
@@ -120,8 +121,19 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* 1. Daily Streak & Routine Completion Line */}
-      <DailyStreakProgress />
+      {/* 1. Daily Streak Progress & Side 3D Focus Keycap */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        <div className="lg:col-span-8 flex flex-col justify-between">
+          <DailyStreakProgress className="h-full" />
+        </div>
+        <div className="hidden lg:flex lg:col-span-4 flex-col">
+          <GlassKeycapWidget
+            legend="esc."
+            size={280}
+            className="w-full h-full min-h-[260px]"
+          />
+        </div>
+      </div>
 
       {/* 2. Weekly Performance Analysis */}
       <WeeklyAnalysisView />

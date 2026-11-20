@@ -31,10 +31,26 @@ export default function DashboardLayout({
     }
   }, [isLoggedIn, loading]);
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("taskit_theme");
+      if (saved === "dark") {
+        setDark(true);
+        document.documentElement.dataset.theme = "dark";
+      } else if (saved === "light") {
+        setDark(false);
+        document.documentElement.dataset.theme = "light";
+      }
+    } catch {}
+  }, []);
+
   const toggleTheme = () => {
     setDark((prev) => {
       const next = !prev;
       document.documentElement.dataset.theme = next ? "dark" : "light";
+      try {
+        localStorage.setItem("taskit_theme", next ? "dark" : "light");
+      } catch {}
       return next;
     });
   };

@@ -1,8 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+
+const CorollaGleam = dynamic(() => import("@/components/CorollaGleam"), {
+  ssr: false,
+  loading: () => null,
+});
 
 type AuthMode = "login" | "signup" | "forgot";
 
@@ -199,11 +205,12 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4 py-8"
+      className="h-screen max-h-screen w-screen overflow-hidden flex items-center justify-center px-4 relative"
       data-theme="dark"
       style={{ background: "#000000", color: "#ededed" }}
     >
-      <div className="w-full max-w-md">
+      {/* Centered Auth Card Container */}
+      <div className="w-full max-w-md relative z-10 py-4 -translate-y-4 sm:-translate-y-6">
         {/* ========================================================================= */}
         {/* DISTINCT LOGOS ACCORDING TO AUTH FLOW */}
         {/* ========================================================================= */}
@@ -819,6 +826,39 @@ export default function LoginPage() {
             </button>
           </p>
         )}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* DOWN BELOW: COROLLA GLEAM WITH BLACK MASK & MINIMAL MOBILE VIEW           */}
+      {/* ========================================================================= */}
+      <div className="absolute bottom-0 inset-x-0 w-full h-[25vh] sm:h-[45vh] lg:h-[50vh] max-h-[50vh] pointer-events-none sm:pointer-events-auto select-none overflow-hidden flex items-end justify-center z-0">
+        <div className="w-full h-full relative flex items-end justify-center scale-90 sm:scale-100 origin-bottom transition-transform duration-300">
+          <CorollaGleam
+            background="transparent"
+            scale={280}
+            speed={45}
+            spin={4}
+            breathe={50}
+            placement={{ y: 92 }}
+            style={{ width: "100%", height: "100%" }}
+          />
+        </div>
+
+        {/* Top black gradient mask: soft organic fade */}
+        <div
+          className="absolute inset-x-0 top-0 h-28 sm:h-40 pointer-events-none z-10"
+          style={{
+            background: "linear-gradient(to bottom, #000000 0%, rgba(0, 0, 0, 0.75) 45%, transparent 100%)",
+          }}
+        />
+
+        {/* Radial ambient black mask for subtle edge muting */}
+        <div
+          className="absolute inset-0 pointer-events-none z-10"
+          style={{
+            background: "radial-gradient(ellipse 90% 70% at 50% 100%, transparent 35%, rgba(0, 0, 0, 0.45) 70%, #000000 100%)",
+          }}
+        />
       </div>
 
       {/* Minimal Toast Notification */}
